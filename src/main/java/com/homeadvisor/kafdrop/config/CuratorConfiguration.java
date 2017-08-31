@@ -30,6 +30,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
@@ -74,13 +75,15 @@ public class CuratorConfiguration
          this.connect = connect;
       }
 
-      public /*List<String>*/String getConnectList()
+      public List<String> getConnectList()
       {
          /*return CONNECT_SEPARATOR.splitAsStream(this.connect)
             .map(String::trim)
             .filter(s -> s.length() > 0)
             .collect(Collectors.toList());*/
-         return "hidden";
+         List<String> list = new ArrayList<>();
+         list.add("hidden");
+         return list;
       }
 
       public int getRetryMillis()
