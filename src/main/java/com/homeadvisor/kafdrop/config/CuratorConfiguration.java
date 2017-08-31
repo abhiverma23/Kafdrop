@@ -74,12 +74,13 @@ public class CuratorConfiguration
          this.connect = connect;
       }
 
-      public List<String> getConnectList()
+      public /*List<String>*/String getConnectList()
       {
-         return CONNECT_SEPARATOR.splitAsStream(this.connect)
+         /*return CONNECT_SEPARATOR.splitAsStream(this.connect)
             .map(String::trim)
             .filter(s -> s.length() > 0)
-            .collect(Collectors.toList());
+            .collect(Collectors.toList());*/
+         return "hidden";
       }
 
       public int getRetryMillis()
