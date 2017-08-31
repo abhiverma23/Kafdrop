@@ -162,7 +162,6 @@ public class MessageController
        */
       @NotNull
       @Min(1)
-      @Max(100)
       @JsonProperty("lastOffset")
       private Long count;
 
