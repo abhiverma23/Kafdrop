@@ -2,7 +2,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Kafdrop: ${title}</title>
+    <title>${title}</title>
     <link type="text/css" rel="stylesheet" href="/css/baseless.min.css"/>
     <link type="text/css" rel="stylesheet" href="/css/font-awesome.min.css"/>
     <link type="text/css" rel="stylesheet" href="/css/global.css"/>
@@ -20,6 +20,10 @@
 <#macro footer>
 </div>
    <#nested>
+   <br/>
+   <br/>
+   <hr/>
+   <center><strong>End of Page</strong></center><center><a href="#">&#8679;Go To Up&#8679;</a></center>
 </body>
 </html>
 </#macro>
