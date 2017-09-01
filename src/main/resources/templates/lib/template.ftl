@@ -23,7 +23,7 @@
    <br/>
    <br/>
    <hr/>
-   <center><strong>End of Page</strong></center><center><a href="#">&#8679;Go To Up&#8679;</a></center>
+   <center><strong name="bottom">End of page</strong></center><center><a href="#">&#8679;Go To Top&#8679;</a></center>
 </body>
 </html>
 </#macro>

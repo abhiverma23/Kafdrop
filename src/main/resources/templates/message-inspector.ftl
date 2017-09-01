@@ -13,7 +13,7 @@
 <#setting number_format="0">
 
 
-<h1 class="col threecol">Topic Messages: <a href="/topic/${topic.name}">${topic.name}</a></h1>
+<h1 class="col threecol">Topic Messages: <a href="/topic/${topic.name}">${topic.name}</a></h1><a href="#bottom">Go to bottom</a>
 
 <#assign selectedPartition=messageForm.partition!0?number>
 
