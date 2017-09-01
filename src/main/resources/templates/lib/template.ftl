@@ -20,10 +20,11 @@
 <#macro footer>
 </div>
    <#nested>
-   <br/>
-   <br/>
    <hr/>
-   <center><strong id="bottom">End of page</strong></center><center><a href="#">&#8679;Go To Top&#8679;</a></center>
+   <center><button><a href="#">Go To Top &#8679;</a></button></center>
+   <br/>
+   <center><strong id="bottom">End of page</strong></center>
+   <br/>
 </body>
 </html>
 </#macro>

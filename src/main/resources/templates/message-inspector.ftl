@@ -13,7 +13,8 @@
 <#setting number_format="0">
 
 
-<h1 class="col threecol">Topic Messages: <a href="/topic/${topic.name}">${topic.name}</a></h1><a href="#bottom">Go to bottom</a>
+<h1 class="col threecol">Topic Messages: <a href="/topic/${topic.name}">${topic.name}</a></h1>
+<center><button><a href="#bottom">Go to bottom &#8681;</a></button></center>
 
 <#assign selectedPartition=messageForm.partition!0?number>
 
@@ -37,11 +38,13 @@
 
         <label for="offset">Offset</label>
         <@spring.bind path="messageForm.offset"/>
+        <!--<@spring.formInput path="messageForm.offset" attributes='value="${curPartition.firstOffset}" class="bs-form-elem ${spring.status.error?string("error", "")}"'/>-->
         <@spring.formInput path="messageForm.offset" attributes='class="bs-form-elem ${spring.status.error?string("error", "")}"'/>
         <@spring.showErrors separator="\n" classOrStyle="error"/>
 
         <label for="count">Num Messages</label>
         <@spring.bind path="messageForm.count"/>
+        <!--<@spring.formInput path="messageForm.count" attributes='value="${curPartition.size}" class="bs-form-elem ${spring.status.error?string("error", "")}"'/>-->
         <@spring.formInput path="messageForm.count" attributes='class="bs-form-elem ${spring.status.error?string("error", "")}"'/>
         <span class="error"><@spring.showErrors "<br/>"/></span>
 

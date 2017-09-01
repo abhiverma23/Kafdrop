@@ -39,8 +39,19 @@ jQuery(document).ready(function() {
         var selectedOption = jQuery(this).children("option").filter(":selected"),
             firstOffset = selectedOption.data('firstOffset'),
             lastOffset = selectedOption.data('lastOffset');
+           /* startOffset = 0,
+            numMessage = 100;
+        if((lastOffset - firstOffset)<100){
+            startOffset = firstOffset;
+            numMessage = lastOffset - firstOffset;
+        }
+        else {
+            startOffset = lastOffset - 100;
+        }*/
         jQuery('#firstOffset').text(firstOffset);
         jQuery('#lastOffset').text(lastOffset);
+        /*jQuery('#startOffset').text(startOffset);
+        jQuery('#numMessage').text(numMessage);*/
         jQuery('#partitionSize').text(lastOffset - firstOffset)
     });
 })
