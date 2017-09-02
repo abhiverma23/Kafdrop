@@ -87,6 +87,7 @@ public class MessageInspector
                   .forEach(messages::add);
                currentOffset += messages.size() - oldSize;
             }
+
             return messages;
          })
          .orElseGet(Collections::emptyList);

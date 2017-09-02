@@ -21,6 +21,7 @@ package com.homeadvisor.kafdrop.controller;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.homeadvisor.kafdrop.model.MessageVO;
+import com.homeadvisor.kafdrop.model.TopicPartitionVO;
 import com.homeadvisor.kafdrop.model.TopicVO;
 import com.homeadvisor.kafdrop.service.KafkaMonitor;
 import com.homeadvisor.kafdrop.service.MessageInspector;
@@ -40,7 +41,9 @@ import javax.validation.constraints.Max;
 import javax.validation.constraints.Min;
 import javax.validation.constraints.NotNull;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 
 @Controller
 public class MessageController
@@ -67,9 +70,20 @@ public class MessageController
    {
       if (messageForm.isEmpty())
       {
+         final TopicVO topic = kafkaMonitor.getTopic(topicName)
+                 .orElseThrow(() -> new TopicNotFoundException(topicName));
+         final TopicPartitionVO partition = topic.getPartition(0).get();
+         final long offset = (partition.getFirstOffset() + partition.getSize() - 50) < 0 ? 0 : (partition.getFirstOffset() + partition.getSize() - 50);
          final PartitionOffsetInfo defaultForm = new PartitionOffsetInfo();
-         defaultForm.setCount(1l);
+         defaultForm.setOffset(offset);
+         defaultForm.setPartition(0);
+         defaultForm.setCount(50l);
          model.addAttribute("messageForm", defaultForm);
+         model.addAttribute("messages",
+                 messageInspector.getMessages(topicName,
+                         0,
+                         offset,
+                         50l));
       }
 
       final TopicVO topic = kafkaMonitor.getTopic(topicName)
