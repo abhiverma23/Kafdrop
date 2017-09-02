@@ -70,18 +70,19 @@ public class MessageController
    {
       if (messageForm.isEmpty())
       {
+         final int partitionId = messageForm.getPartition()!= null?messageForm.getPartition():0;
          final TopicVO topic = kafkaMonitor.getTopic(topicName)
                  .orElseThrow(() -> new TopicNotFoundException(topicName));
-         final TopicPartitionVO partition = topic.getPartition(0).get();
+         final TopicPartitionVO partition = topic.getPartition(partitionId).get();
          final long offset = (partition.getFirstOffset() + partition.getSize() - 50) < 0 ? 0 : (partition.getFirstOffset() + partition.getSize() - 50);
          final PartitionOffsetInfo defaultForm = new PartitionOffsetInfo();
          defaultForm.setOffset(offset);
-         defaultForm.setPartition(0);
+         defaultForm.setPartition(partitionId);
          defaultForm.setCount(50l);
          model.addAttribute("messageForm", defaultForm);
          model.addAttribute("messages",
                  messageInspector.getMessages(topicName,
-                         0,
+                         partitionId,
                          offset,
                          50l));
       }
@@ -194,7 +195,7 @@ public class MessageController
       @JsonIgnore
       public boolean isEmpty()
       {
-         return partition == null && offset == null && (count == null || count == 1);
+         return offset == null && (count == null || count == 1);
       }
 
       public Integer getPartition()
