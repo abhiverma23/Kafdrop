@@ -65,7 +65,7 @@
                 </#if>
                 <#list topics as t>
                 <tr>
-                    <td><a class="bs-btn info" href="/topic/${t.name}/messages"><i class="fa fa-eye"></i></a>&nbsp;&nbsp;&nbsp;&nbsp;<a href="/topic/${t.name}">${t.name}</a></td>
+                    <td><a class="bs-btn success" href="/topic/${t.name}/messages"><i class="fa fa-envelope"></i></a> <a class="bs-btn info" href="/topic/${t.name}"><i class="fa fa-cog"></i> ${t.name}</a></td>
                     <td>${t.partitions?size}</td>
                     <td <#if t.preferredReplicaPercent lt 1.0>class="warn"</#if>>${t.preferredReplicaPercent?string.percent}</td>
                     <td <#if t.underReplicatedPartitions?size gt 0>class="warn"</#if>>${t.underReplicatedPartitions?size}</td>
