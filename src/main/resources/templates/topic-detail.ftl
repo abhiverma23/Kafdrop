@@ -87,7 +87,7 @@
         <tbody>
         <#list topic.partitions as p>
         <tr>
-            <td><a href="/topic/${topic.name}/messages?partition=${p.id}"><i class="fa fa-envelope"></i>${p.id}</a></td>
+            <td><a class="bs-btn info" href="/topic/${topic.name}/messages?partition=${p.id}"><i class="fa fa-info"></i>${p.id}</a></td>
             <td>${p.firstOffset}</td>
             <td>${p.size}</td>
             <td>${p.size - p.firstOffset}</td>
