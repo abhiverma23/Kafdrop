@@ -10,7 +10,7 @@
         </div>
 
         <div id="brokers">
-            <h3>Brokers</h3>
+            <h3>${brokers?size} Brokers</h3>
             <table class="bs-table default">
                 <thead>
                 <tr>
@@ -45,7 +45,7 @@
         </div>
 
         <div id="topics">
-            <h3>Topics</h3>
+            <h3>${topics?size} Topics</h3>
             <table class="bs-table default">
                 <thead>
                 <tr>
