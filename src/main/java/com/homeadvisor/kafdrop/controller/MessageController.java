@@ -37,13 +37,10 @@ import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
-import javax.validation.constraints.Max;
 import javax.validation.constraints.Min;
 import javax.validation.constraints.NotNull;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
-import java.util.Optional;
 
 @Controller
 public class MessageController
@@ -74,7 +71,7 @@ public class MessageController
          final TopicVO topic = kafkaMonitor.getTopic(topicName)
                  .orElseThrow(() -> new TopicNotFoundException(topicName));
          final TopicPartitionVO partition = topic.getPartition(partitionId).get();
-         final long offset = (partition.getFirstOffset() + partition.getSize() - 50) < 0 ? 0 : (partition.getFirstOffset() + partition.getSize() - 50);
+         final long offset = (partition.getSize() - 50) < 0 ? 0 : (partition.getSize() - 50);
          final PartitionOffsetInfo defaultForm = new PartitionOffsetInfo();
          defaultForm.setOffset(offset);
          defaultForm.setPartition(partitionId);
@@ -144,7 +141,7 @@ public class MessageController
 
          if(vos != null)
          {
-            vos.stream().forEach(vo -> messages.add(vo));
+            vos.stream().forEach(messages::add);
          }
 
          return messages;
@@ -189,7 +186,7 @@ public class MessageController
 
       public PartitionOffsetInfo()
       {
-
+         //Default Constructor
       }
 
       @JsonIgnore
