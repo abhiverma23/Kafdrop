@@ -68,10 +68,11 @@ public class MessageController
       if (messageForm.isEmpty())
       {
          final int partitionId = messageForm.getPartition()!= null?messageForm.getPartition():0;
-         final TopicVO topic = kafkaMonitor.getTopic(topicName)
-                 .orElseThrow(() -> new TopicNotFoundException(topicName));
+         final TopicVO topic = kafkaMonitor.getTopic(topicName).orElseThrow(() -> new TopicNotFoundException(topicName));
          final TopicPartitionVO partition = topic.getPartition(partitionId).get();
-         final long offset = (partition.getSize() - 50) < 0 ? 0 : (partition.getSize() - 50);
+         final long lastOffset = partition.getSize();
+         final long firstOffset = partition.getFirstOffset();
+         final long offset = lastOffset - firstOffset < 50 ? firstOffset : lastOffset - 50 < 0 ? 0 : lastOffset - 50;
          final PartitionOffsetInfo defaultForm = new PartitionOffsetInfo();
          defaultForm.setOffset(offset);
          defaultForm.setPartition(partitionId);
@@ -85,16 +86,16 @@ public class MessageController
       }
 
       final TopicVO topic = kafkaMonitor.getTopic(topicName)
-         .orElseThrow(() -> new TopicNotFoundException(topicName));
+              .orElseThrow(() -> new TopicNotFoundException(topicName));
       model.addAttribute("topic", topic);
 
       if (!messageForm.isEmpty() && !errors.hasErrors())
       {
          model.addAttribute("messages",
-                            messageInspector.getMessages(topicName,
-                                                         messageForm.getPartition(),
-                                                         messageForm.getOffset(),
-                                                         messageForm.getCount()));
+                 messageInspector.getMessages(topicName,
+                         messageForm.getPartition(),
+                         messageForm.getOffset(),
+                         messageForm.getCount()));
       }
 
       return "message-inspector";
@@ -109,21 +110,21 @@ public class MessageController
     */
    @ApiOperation(value = "getPartitionOrMessages", notes = "Get offset or message data for a topic. Without query params returns all partitions with offset data. With query params, returns actual messages (if valid offsets are provided).")
    @ApiResponses(value = {
-         @ApiResponse(code = 200, message = "Success", response = List.class),
-         @ApiResponse(code = 404, message = "Invalid topic name")
+           @ApiResponse(code = 200, message = "Success", response = List.class),
+           @ApiResponse(code = 404, message = "Invalid topic name")
    })
    @RequestMapping(method = RequestMethod.GET, value = "/topic/{name:.+}/messages", produces = MediaType.APPLICATION_JSON_VALUE)
    public @ResponseBody List<Object> getPartitionOrMessages(
-         @PathVariable("name") String topicName,
-         @RequestParam(name = "partition", required = false) Integer partition,
-         @RequestParam(name = "offset", required = false)    Long offset,
-         @RequestParam(name = "count", required = false)     Long count
+           @PathVariable("name") String topicName,
+           @RequestParam(name = "partition", required = false) Integer partition,
+           @RequestParam(name = "offset", required = false)    Long offset,
+           @RequestParam(name = "count", required = false)     Long count
    )
    {
       if(partition == null || offset == null || count == null)
       {
          final TopicVO topic = kafkaMonitor.getTopic(topicName)
-               .orElseThrow(() -> new TopicNotFoundException(topicName));
+                 .orElseThrow(() -> new TopicNotFoundException(topicName));
 
          List<Object> partitionList = new ArrayList<>();
          topic.getPartitions().stream().forEach(vo -> partitionList.add(new PartitionOffsetInfo(vo.getId(), vo.getFirstOffset(), vo.getSize())));
@@ -134,10 +135,10 @@ public class MessageController
       {
          List<Object> messages = new ArrayList<>();
          List<MessageVO> vos = messageInspector.getMessages(
-               topicName,
-               partition,
-               offset,
-               count);
+                 topicName,
+                 partition,
+                 offset,
+                 count);
 
          if(vos != null)
          {
@@ -155,7 +156,7 @@ public class MessageController
    {
       @NotNull
       @Min(0)
-      private Integer partition;
+      private Integer partition = 0;
 
       /**
        * Need to clean this up. We're re-using this form for the JSON message API
@@ -165,7 +166,7 @@ public class MessageController
       @NotNull
       @Min(0)
       @JsonProperty("firstOffset")
-      private Long offset;
+      private Long offset = 0l;
 
       /**
        * Need to clean this up. We're re-using this form for the JSON message API
@@ -175,7 +176,7 @@ public class MessageController
       @NotNull
       @Min(1)
       @JsonProperty("lastOffset")
-      private Long count;
+      private Long count = 1l;
 
       public PartitionOffsetInfo(int partition, long offset, long count)
       {
@@ -184,8 +185,7 @@ public class MessageController
          this.count = count;
       }
 
-      public PartitionOffsetInfo()
-      {
+      public PartitionOffsetInfo() {
          //Default Constructor
       }
 
