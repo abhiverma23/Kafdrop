@@ -72,7 +72,7 @@ public class MessageController
          final TopicPartitionVO partition = topic.getPartition(partitionId).get();
          final long lastOffset = partition.getSize();
          final long firstOffset = partition.getFirstOffset();
-         final long offset = lastOffset - firstOffset < 50 ? firstOffset : lastOffset - 50 < 0 ? 0 : lastOffset - 50;
+         final long offset = lastOffset - firstOffset < 50 ? firstOffset : lastOffset - 50;
          final PartitionOffsetInfo defaultForm = new PartitionOffsetInfo();
          defaultForm.setOffset(offset);
          defaultForm.setPartition(partitionId);
@@ -156,7 +156,7 @@ public class MessageController
    {
       @NotNull
       @Min(0)
-      private Integer partition = 0;
+      private Integer partition;
 
       /**
        * Need to clean this up. We're re-using this form for the JSON message API
@@ -166,7 +166,7 @@ public class MessageController
       @NotNull
       @Min(0)
       @JsonProperty("firstOffset")
-      private Long offset = 0l;
+      private Long offset;
 
       /**
        * Need to clean this up. We're re-using this form for the JSON message API
@@ -176,7 +176,7 @@ public class MessageController
       @NotNull
       @Min(1)
       @JsonProperty("lastOffset")
-      private Long count = 1l;
+      private Long count;
 
       public PartitionOffsetInfo(int partition, long offset, long count)
       {
