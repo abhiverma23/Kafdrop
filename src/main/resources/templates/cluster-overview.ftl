@@ -1,6 +1,8 @@
 <#import "lib/template.ftl" as template>
 <@template.header "Broker List"/>
 
+<script src="/js/powerFilter.js"></script>
+
 <#setting number_format="0">
     <div>
         <h2>Kafka Cluster Overview</h2>
@@ -49,10 +51,32 @@
             <table class="bs-table default">
                 <thead>
                 <tr>
-                    <th>Name</th>
-                    <th>Partitions</th>
-                    <th>% Preferred</th>
-                    <th># Under Replicated</th>
+                    <th>
+                        Topic Name
+
+                        <span style="font-weight:normal;">
+                            &nbsp;<INPUT id='filter' size=25 NAME='searchRow' title='Just type to filter the rows'>&nbsp;
+                            <span id="rowCount"></span>
+                        </span>
+                    </th>
+                    <th>
+                        Partitions
+                        <a title="Number of partitions in the topic"
+                           data-toggle="tooltip" data-placement="top" href="#"
+                        ><i class="fa fa-question-circle"></i></a>
+                    </th>
+                    <th>
+                        % Preferred
+                        <a title="Percent of partitions where the preferred broker has been assigned leadership"
+                           data-toggle="tooltip" data-placement="top" href="#"
+                        ><i class="fa fa-question-circle"></i></a>
+                    </th>
+                    <th>
+                        # Under Replicated
+                        <a title="Number of partition replicas that are not in sync with the primary partition"
+                           data-toggle="tooltip" data-placement="top" href="#"
+                        ><i class="fa fa-question-circle"></i></a>
+                    </th>
                     <th>Custom Config?</th>
                     <#--<th>Consumers</th>-->
                 </tr>
@@ -64,7 +88,7 @@
                 </tr>
                 </#if>
                 <#list topics as t>
-                <tr>
+                <tr class="dataRow">
                     <td><a class="bs-btn success" href="/topic/${t.name}/messages"><i class="fa fa-envelope"></i></a> <a class="bs-btn info" href="/topic/${t.name}"><i class="fa fa-gears"></i> ${t.name}</a></td>
                     <td>${t.partitions?size}</td>
                     <td <#if t.preferredReplicaPercent lt 1.0>class="warn"</#if>>${t.preferredReplicaPercent?string.percent}</td>
@@ -79,3 +103,14 @@
     </div>
 
 <@template.footer/>
+
+<script>
+    $(document).ready(function() {
+        $('#filter').focus();
+
+    <#if filter??>
+        $('#filter').val('${filter}');
+    </#if>
+        $('[data-toggle="tooltip"]').tooltip()
+    });
+</script>

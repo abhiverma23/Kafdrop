@@ -18,10 +18,13 @@
 
 package com.homeadvisor.kafdrop.service;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 import com.homeadvisor.kafdrop.model.MessageVO;
 import com.homeadvisor.kafdrop.model.TopicPartitionVO;
 import com.homeadvisor.kafdrop.model.TopicVO;
 import com.homeadvisor.kafdrop.util.BrokerChannel;
+import kafka.Kafka;
 import kafka.api.FetchRequest;
 import kafka.api.FetchRequestBuilder;
 import kafka.javaapi.FetchResponse;
@@ -29,16 +32,20 @@ import kafka.javaapi.consumer.SimpleConsumer;
 import kafka.javaapi.message.ByteBufferMessageSet;
 import kafka.message.Message;
 import kafka.message.MessageAndOffset;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.consumer.ConsumerRecords;
+import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.common.TopicPartition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.helpers.MessageFormatter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
@@ -50,14 +57,50 @@ public class MessageInspector
    @Autowired
    private KafkaMonitor kafkaMonitor;
 
+   private Properties consumerProperties = null;
+
+   @Autowired
+   private MessageInspector(KafkaMonitor kafkaMonitor) {
+      this.kafkaMonitor = kafkaMonitor;
+      this.consumerProperties = new Properties();
+      this.consumerProperties.put(ConsumerConfig.GROUP_ID_CONFIG,"com.homeadvisor.kafdrop.service");
+      this.consumerProperties.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+      this.consumerProperties.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false");
+      this.consumerProperties.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringDeserializer");
+      this.consumerProperties.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringDeserializer");
+   }
+
    public List<MessageVO> getMessages(String topicName, int partitionId, long offset, long count)
    {
       final TopicVO topic = kafkaMonitor.getTopic(topicName).orElseThrow(TopicNotFoundException::new);
       final TopicPartitionVO partition = topic.getPartition(partitionId).orElseThrow(PartitionNotFoundException::new);
 
-      return kafkaMonitor.getBroker(partition.getLeader().getId())
+      long lastOffset = partition.getSize();
+      final long finalCount = lastOffset >= offset + count ? count : lastOffset - offset;
+
+      //----------- here and remove return;
+
+      KafkaConsumer<String, String> consumer = new KafkaConsumer(this.getConsumerConfiguration());
+      TopicPartition topicPartition = new TopicPartition(topicName, partitionId);
+      consumer.assign(Collections.singleton(topicPartition));
+      consumer.seek(topicPartition, offset);
+
+      List<MessageVO> messages = new ArrayList<>();
+
+      while (messages.size() < finalCount) {
+         ConsumerRecords<String, String> records = consumer.poll(1000);
+
+         StreamSupport.stream(records.spliterator(), false)
+                 .limit(finalCount - messages.size())
+                 .map(this::createMessage)
+                 .forEach(messages::add);
+      }
+
+      return messages;
+
+      /*return kafkaMonitor.getBroker(partition.getLeader().getId())
          .map(broker -> {
-            SimpleConsumer consumer = new SimpleConsumer(broker.getHost(), broker.getPort(), 10000, 100000, "");
+            SimpleConsumer consumer2 = new SimpleConsumer(broker.getHost(), broker.getPort(), 10000, 100000, "");
 
             final FetchRequestBuilder fetchRequestBuilder = new FetchRequestBuilder()
                .clientId("KafDrop")
@@ -66,14 +109,14 @@ public class MessageInspector
 
             List<MessageVO> messages = new ArrayList<>();
             long currentOffset = offset;
-            while (messages.size() < count)
+            while (messages.size() < finalCount)
             {
                final FetchRequest fetchRequest =
                   fetchRequestBuilder
                      .addFetch(topicName, partitionId, currentOffset, 1024 * 1024)
                      .build();
 
-               FetchResponse fetchResponse = consumer.fetch(fetchRequest);
+               FetchResponse fetchResponse = consumer2.fetch(fetchRequest);
 
                final ByteBufferMessageSet messageSet = fetchResponse.messageSet(topicName, partitionId);
                if (messageSet.validBytes() <= 0) break;
@@ -81,7 +124,7 @@ public class MessageInspector
 
                int oldSize = messages.size();
                StreamSupport.stream(messageSet.spliterator(), false)
-                  .limit(count - messages.size())
+                  .limit(finalCount - messages.size())
                   .map(MessageAndOffset::message)
                   .map(this::createMessage)
                   .forEach(messages::add);
@@ -90,25 +133,35 @@ public class MessageInspector
 
             return messages;
          })
-         .orElseGet(Collections::emptyList);
+         .orElseGet(Collections::emptyList);*/
    }
 
-   private MessageVO createMessage(Message message)
+   private MessageVO createMessage(ConsumerRecord<String, String> message)
    {
       MessageVO vo = new MessageVO();
-      if (message.hasKey())
+      if (Objects.nonNull(message.key()))
       {
-         vo.setKey(readString(message.key()));
+         vo.setKey(message.key());
       }
-      if (!message.isNull())
+      if (Objects.nonNull(message.value()))
       {
-         vo.setMessage(readString(message.payload()));
+         vo.setMessage(message.value());
       }
 
-      vo.setValid(message.isValid());
-      vo.setCompressionCodec(message.compressionCodec().name());
+
+      if (Objects.nonNull(message.headers())) {
+         JsonObject headers = new JsonObject();
+         message.headers().forEach(h -> {
+            headers.addProperty(h.key(),new String(h.value()));
+         });
+         vo.setHeaders(headers.toString());
+      }
+
+      //vo.setValid(message.isValid());
+      vo.setCompressionCodec("");
       vo.setChecksum(message.checksum());
-      vo.setComputedChecksum(message.computeChecksum());
+      //vo.setComputedChecksum(message.computeChecksum());
+      //vo.setHeaders();
 
       return vo;
    }
@@ -144,6 +197,18 @@ public class MessageInspector
          buffer.reset();
       }
       return dest;
+   }
+
+   private Properties getConsumerConfiguration() {
+      try {
+         StringBuilder brokers = new StringBuilder();
+         kafkaMonitor.getBrokers().forEach(brokerVO -> brokers.append(brokerVO.getHost()+":"+brokerVO.getPort()+","));
+         this.consumerProperties.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, brokers.toString());
+         return consumerProperties;
+      } catch (Exception ex) {
+         LOG.error("Error while building consumer configuration.", ex);
+         return consumerProperties;
+      }
    }
 
 }

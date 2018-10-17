@@ -18,6 +18,8 @@
 
 package com.homeadvisor.kafdrop.model;
 
+import org.apache.kafka.common.header.Headers;
+
 public class MessageVO
 {
    private String message;
@@ -26,6 +28,7 @@ public class MessageVO
    private long checksum;
    private long computedChecksum;
    private String compressionCodec;
+   private String headers;
 
    public boolean isValid()
    {
@@ -85,5 +88,13 @@ public class MessageVO
    public void setCompressionCodec(String compressionCodec)
    {
       this.compressionCodec = compressionCodec;
+   }
+
+   public String getHeaders() {
+      return headers;
+   }
+
+   public void setHeaders(String headers) {
+      this.headers = headers;
    }
 }

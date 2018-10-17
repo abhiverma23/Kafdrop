@@ -64,8 +64,14 @@
             <span class="bs-label">Offset:</span> ${offset}
             <span class="bs-label">Key:</span> ${(msg.key)!''}
             <span class="bs-label">Checksum/Computed:</span> <span <#if !msg.valid>class="error"</#if>>${msg.checksum}/${msg.computedChecksum}</span>
-            <span class="bs-label">Compression:</span> ${msg.compressionCodec}
+            <span class="bs-label">Headers:</span> ${msg.headers}
             <div>
+            Headers
+            <a href="#" class="toggle-msg"><i class="fa fa-chevron-circle-right">&nbsp;</i></a>
+            <pre class="message-body">${msg.headers!''}</pre>
+            </div>
+            <div>
+            Message
             <a href="#" class="toggle-msg"><i class="fa fa-chevron-circle-right">&nbsp;</i></a>
             <pre class="message-body">${msg.message!''}</pre>
             </div>
