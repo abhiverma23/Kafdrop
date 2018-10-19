@@ -49,13 +49,13 @@
         <div id="topics">
             <h3>${topics?size} Topics</h3>
             <table class="bs-table default">
-                <thead>
+                <thead align="left">
                 <tr>
                     <th>
                         Topic Name
 
                         <span style="font-weight:normal;">
-                            &nbsp;<INPUT id='filter' size=25 NAME='searchRow' title='Just type to filter the rows'>&nbsp;
+                            &nbsp;<INPUT id='filter' size=25 NAME='searchRow' title='Just type to filter the topics' placeholder="Just type to filter the topics">&nbsp;
                             <span id="rowCount"></span>
                         </span>
                     </th>
@@ -89,7 +89,7 @@
                 </#if>
                 <#list topics as t>
                 <tr class="dataRow">
-                    <td><a class="bs-btn success" href="/topic/${t.name}/messages"><i class="fa fa-envelope"></i></a> <a class="bs-btn info" href="/topic/${t.name}"><i class="fa fa-gears"></i> ${t.name}</a></td>
+                    <td><a class="bs-btn info" href="/topic/${t.name}" title="Topic Info"><i class="fa fa-gears"></i></a> <a class="bs-btn success" href="/topic/${t.name}/messages" title="View Messages"><i class="fa fa-envelope"></i> ${t.name}</a></td>
                     <td>${t.partitions?size}</td>
                     <td <#if t.preferredReplicaPercent lt 1.0>class="warn"</#if>>${t.preferredReplicaPercent?string.percent}</td>
                     <td <#if t.underReplicatedPartitions?size gt 0>class="warn"</#if>>${t.underReplicatedPartitions?size}</td>

@@ -63,18 +63,19 @@
         <div data-offset="${offset}" class="message-detail">
             <span class="bs-label">Offset:</span> ${offset}
             <span class="bs-label">Key:</span> ${(msg.key)!''}
-            <span class="bs-label">Checksum/Computed:</span> <span <#if !msg.valid>class="error"</#if>>${msg.checksum}/${msg.computedChecksum}</span>
-            <span class="bs-label">Headers:</span> ${msg.headers}
+            <!--<span class="bs-label">Checksum/Computed:</span> <span <#if !msg.valid>class="error"</#if>>${msg.checksum}/${msg.computedChecksum}</span>
+            <span class="bs-label">Headers:</span>${msg.headers}-->
             <div>
-            Headers
-            <a href="#" class="toggle-msg"><i class="fa fa-chevron-circle-right">&nbsp;</i></a>
+            <span class="bs-label">Headers:</span>
+            <a href="#" class="toggle-msg" script="margin-top:500px;"><i class="fa fa-chevron-circle-right">&nbsp;</i></a>
             <pre class="message-body">${msg.headers!''}</pre>
             </div>
             <div>
-            Message
+            <span class="bs-label">Message:</span>
             <a href="#" class="toggle-msg"><i class="fa fa-chevron-circle-right">&nbsp;</i></a>
             <pre class="message-body">${msg.message!''}</pre>
             </div>
+            <hr>
         </div>
     </#list>
     <#elseif !(spring.status.error) && !(messageForm.empty)>
