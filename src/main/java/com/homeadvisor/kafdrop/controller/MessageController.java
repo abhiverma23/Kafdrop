@@ -82,7 +82,7 @@ public class MessageController
                  messageInspector.getMessages(topicName,
                          partitionId,
                          offset,
-                         50l));
+                         50l, messageForm.getSearchBy()));
       }
 
       final TopicVO topic = kafkaMonitor.getTopic(topicName)
@@ -95,7 +95,7 @@ public class MessageController
                  messageInspector.getMessages(topicName,
                          messageForm.getPartition(),
                          messageForm.getOffset(),
-                         messageForm.getCount()));
+                         messageForm.getCount(),messageForm.getSearchBy()));
       }
 
       return "message-inspector";
@@ -118,7 +118,8 @@ public class MessageController
            @PathVariable("name") String topicName,
            @RequestParam(name = "partition", required = false) Integer partition,
            @RequestParam(name = "offset", required = false)    Long offset,
-           @RequestParam(name = "count", required = false)     Long count
+           @RequestParam(name = "count", required = false)     Long count,
+           @RequestParam(name = "searchBy", required = false)  String searchBy
    )
    {
       if(partition == null || offset == null || count == null)
@@ -138,7 +139,8 @@ public class MessageController
                  topicName,
                  partition,
                  offset,
-                 count);
+                 count,
+                 searchBy);
 
          if(vos != null)
          {
@@ -177,6 +179,9 @@ public class MessageController
       @Min(1)
       @JsonProperty("lastOffset")
       private Long count;
+
+      @JsonProperty("searchBy")
+      private String searchBy;
 
       public PartitionOffsetInfo(int partition, long offset, long count)
       {
@@ -223,6 +228,14 @@ public class MessageController
       public void setCount(Long count)
       {
          this.count = count;
+      }
+
+      public String getSearchBy() {
+         return searchBy;
+      }
+
+      public void setSearchBy(String searchBy) {
+         this.searchBy = searchBy;
       }
    }
 }

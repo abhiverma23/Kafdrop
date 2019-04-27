@@ -24,6 +24,7 @@ public class MessageVO
 {
    private String message;
    private String key;
+   private long offset;
    private boolean valid;
    private long checksum;
    private long computedChecksum;
@@ -58,6 +59,14 @@ public class MessageVO
    public void setKey(String key)
    {
       this.key = key;
+   }
+
+   public long getOffset() {
+      return offset;
+   }
+
+   public void setOffset(long offset) {
+      this.offset = offset;
    }
 
    public long getChecksum()

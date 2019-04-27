@@ -30,6 +30,7 @@ public class TopicPartitionVO
    private Integer preferredLeaderId;
    private long size = -1;
    private long firstOffset = -1;
+   private String searchBy = "";
 
    public TopicPartitionVO(int id)
    {
@@ -89,6 +90,14 @@ public class TopicPartitionVO
    {
       return replicas.values().stream()
          .filter(PartitionReplica::isInService);
+   }
+
+   public String getSearchBy() {
+      return searchBy;
+   }
+
+   public void setSearchBy(String searchBy) {
+      this.searchBy = searchBy;
    }
 
    public boolean isUnderReplicated()

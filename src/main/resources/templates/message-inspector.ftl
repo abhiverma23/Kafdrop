@@ -48,6 +48,12 @@
         <@spring.formInput path="messageForm.count" attributes='class="bs-form-elem ${spring.status.error?string("error", "")}"'/>
         <span class="error"><@spring.showErrors "<br/>"/></span>
 
+        <label for="searchBy">Message Contains</label>
+        <@spring.bind path="messageForm.searchBy"/>
+        <!--<@spring.formInput path="messageForm.searchBy" attributes='value="${curPartition.searchBy}" class="bs-form-elem ${spring.status.error?string("error", "")}"'/>-->
+        <@spring.formInput path="messageForm.searchBy" attributes='class="bs-form-elem ${spring.status.error?string("error", "")}"'/>
+        <span class="error"><@spring.showErrors "<br/>"/></span>
+
         <button class="bs-btn primary" type="submit"><i class="fa fa-search"></i> View Messages</button>
 
     </div>
@@ -59,9 +65,9 @@
 <div id="message-display">
     <#if messages?? && messages?size gt 0>
     <#list messages as msg>
-        <#assign offset=messageForm.offset + msg_index>
-        <div data-offset="${offset}" class="message-detail">
-            <span class="bs-label">Offset:</span> ${offset}
+        <#--<#assign offset=messageForm.offset + msg_index>-->
+        <div data-offset="${msg.offset}" class="message-detail">
+            <span class="bs-label">Offset:</span> ${msg.offset}
             <span class="bs-label">Key:</span> ${(msg.key)!''}
             <!--<span class="bs-label">Checksum/Computed:</span> <span <#if !msg.valid>class="error"</#if>>${msg.checksum}/${msg.computedChecksum}</span>
             <span class="bs-label">Headers:</span>${msg.headers}-->

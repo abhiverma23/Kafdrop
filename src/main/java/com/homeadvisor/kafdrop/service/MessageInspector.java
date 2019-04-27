@@ -18,20 +18,11 @@
 
 package com.homeadvisor.kafdrop.service;
 
-import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.homeadvisor.kafdrop.model.MessageVO;
 import com.homeadvisor.kafdrop.model.TopicPartitionVO;
 import com.homeadvisor.kafdrop.model.TopicVO;
-import com.homeadvisor.kafdrop.util.BrokerChannel;
-import kafka.Kafka;
-import kafka.api.FetchRequest;
-import kafka.api.FetchRequestBuilder;
-import kafka.javaapi.FetchResponse;
-import kafka.javaapi.consumer.SimpleConsumer;
-import kafka.javaapi.message.ByteBufferMessageSet;
-import kafka.message.Message;
-import kafka.message.MessageAndOffset;
+import org.apache.commons.lang.StringUtils;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -39,14 +30,13 @@ import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.TopicPartition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.slf4j.helpers.MessageFormatter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
 
 import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.util.*;
-import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 @Service
@@ -70,13 +60,18 @@ public class MessageInspector
       this.consumerProperties.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringDeserializer");
    }
 
-   public List<MessageVO> getMessages(String topicName, int partitionId, long offset, long count)
+   public List<MessageVO> getMessages(String topicName, int partitionId, long offset, long count, String searchBy)
    {
       final TopicVO topic = kafkaMonitor.getTopic(topicName).orElseThrow(TopicNotFoundException::new);
       final TopicPartitionVO partition = topic.getPartition(partitionId).orElseThrow(PartitionNotFoundException::new);
 
       long lastOffset = partition.getSize();
       final long finalCount = lastOffset >= offset + count ? count : lastOffset - offset;
+      List<String> tempContains = null;
+      if (StringUtils.isNotBlank(searchBy)) {
+         tempContains = Arrays.asList(searchBy.split("[|]"));
+      }
+      final List<String> contains = tempContains;
 
       //----------- here and remove return;
 
@@ -87,13 +82,21 @@ public class MessageInspector
 
       List<MessageVO> messages = new ArrayList<>();
 
-      while (messages.size() < finalCount) {
-         ConsumerRecords<String, String> records = consumer.poll(1000);
+      ConsumerRecords<String, String> records = null;
+      while (messages.size() < finalCount && (records==null || !records.isEmpty())) {
+         records = consumer.poll(1000);
 
-         StreamSupport.stream(records.spliterator(), false)
-                 .limit(finalCount - messages.size())
-                 .map(this::createMessage)
-                 .forEach(messages::add);
+         if (StringUtils.isBlank(searchBy)) {
+            StreamSupport.stream(records.spliterator(), false)
+                    .limit(finalCount - messages.size())
+                    .map(this::createMessage)
+                    .forEach(messages::add);
+         } else {
+            StreamSupport.stream(records.spliterator(), false)
+                    .limit(finalCount - messages.size()).map(this::createMessage)
+                    .filter(messageVO -> containAny(messageVO.getMessage(), contains))
+                    .forEach(messages::add);
+         }
       }
 
       return messages;
@@ -136,6 +139,15 @@ public class MessageInspector
          .orElseGet(Collections::emptyList);*/
    }
 
+   private boolean containAny(String message, List<String> contains) {
+      if (!CollectionUtils.isEmpty(contains)) {
+         if (contains.stream().anyMatch(charSequence -> message.contains(charSequence))) {
+            return true;
+         }
+      }
+      return false;
+   }
+
    private MessageVO createMessage(ConsumerRecord<String, String> message)
    {
       MessageVO vo = new MessageVO();
@@ -146,6 +158,10 @@ public class MessageInspector
       if (Objects.nonNull(message.value()))
       {
          vo.setMessage(message.value());
+      }
+      if (Objects.nonNull(message.offset()))
+      {
+         vo.setOffset(message.offset());
       }
 
 
