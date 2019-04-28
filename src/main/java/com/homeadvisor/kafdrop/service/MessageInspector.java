@@ -22,6 +22,8 @@ import com.google.gson.JsonObject;
 import com.homeadvisor.kafdrop.model.MessageVO;
 import com.homeadvisor.kafdrop.model.TopicPartitionVO;
 import com.homeadvisor.kafdrop.model.TopicVO;
+import com.homeadvisor.kafdrop.util.ByteUtils;
+import com.homeadvisor.kafdrop.util.MessageDeserializer;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -39,67 +41,66 @@ import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.stream.StreamSupport;
 
+
 @Service
-public class MessageInspector
-{
-   private final Logger LOG = LoggerFactory.getLogger(getClass());
+public class MessageInspector {
+    private final Logger LOG = LoggerFactory.getLogger(getClass());
 
-   @Autowired
-   private KafkaMonitor kafkaMonitor;
+    @Autowired
+    private KafkaMonitor kafkaMonitor;
 
-   private Properties consumerProperties = null;
+    private Properties consumerProperties = null;
 
-   @Autowired
-   private MessageInspector(KafkaMonitor kafkaMonitor) {
-      this.kafkaMonitor = kafkaMonitor;
-      this.consumerProperties = new Properties();
-      this.consumerProperties.put(ConsumerConfig.GROUP_ID_CONFIG,"com.homeadvisor.kafdrop.service");
-      this.consumerProperties.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
-      this.consumerProperties.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false");
-      this.consumerProperties.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringDeserializer");
-      this.consumerProperties.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringDeserializer");
-   }
+    @Autowired
+    private MessageInspector(KafkaMonitor kafkaMonitor) {
+        this.kafkaMonitor = kafkaMonitor;
+        this.consumerProperties = new Properties();
+        this.consumerProperties.put(ConsumerConfig.GROUP_ID_CONFIG, "com.homeadvisor.kafdrop.service");
+        this.consumerProperties.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+        this.consumerProperties.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false");
+        this.consumerProperties.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringDeserializer");
+        this.consumerProperties.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringDeserializer");
+    }
 
-   public List<MessageVO> getMessages(String topicName, int partitionId, long offset, long count, String searchBy)
-   {
-      final TopicVO topic = kafkaMonitor.getTopic(topicName).orElseThrow(TopicNotFoundException::new);
-      final TopicPartitionVO partition = topic.getPartition(partitionId).orElseThrow(PartitionNotFoundException::new);
+    public List<MessageVO> getMessages(String topicName, int partitionId, long offset, long count, String searchBy, MessageDeserializer deserializer) {
+        final TopicVO topic = kafkaMonitor.getTopic(topicName).orElseThrow(TopicNotFoundException::new);
+        final TopicPartitionVO partition = topic.getPartition(partitionId).orElseThrow(PartitionNotFoundException::new);
 
-      long lastOffset = partition.getSize();
-      final long finalCount = lastOffset >= offset + count ? count : lastOffset - offset;
-      List<String> tempContains = null;
-      if (StringUtils.isNotBlank(searchBy)) {
-         tempContains = Arrays.asList(searchBy.split("[|]"));
-      }
-      final List<String> contains = tempContains;
+        long lastOffset = partition.getSize();
+        final long finalCount = lastOffset >= offset + count ? count : lastOffset - offset;
+        List<String> tempContains = null;
+        if (StringUtils.isNotBlank(searchBy)) {
+            tempContains = Arrays.asList(searchBy.split("[|]"));
+        }
+        final List<String> contains = tempContains;
 
-      //----------- here and remove return;
+        //----------- here and remove return;
 
-      KafkaConsumer<String, String> consumer = new KafkaConsumer(this.getConsumerConfiguration());
-      TopicPartition topicPartition = new TopicPartition(topicName, partitionId);
-      consumer.assign(Collections.singleton(topicPartition));
-      consumer.seek(topicPartition, offset);
+        KafkaConsumer<String, String> consumer = new KafkaConsumer(this.getConsumerConfiguration());
+        TopicPartition topicPartition = new TopicPartition(topicName, partitionId);
+        consumer.assign(Collections.singleton(topicPartition));
+        consumer.seek(topicPartition, offset);
 
-      List<MessageVO> messages = new ArrayList<>();
+        List<MessageVO> messages = new ArrayList<>();
 
-      ConsumerRecords<String, String> records = null;
-      while (messages.size() < finalCount && (records==null || !records.isEmpty())) {
-         records = consumer.poll(1000);
+        ConsumerRecords<String, String> records = null;
+        while (messages.size() < finalCount && (records == null || !records.isEmpty())) {
+            records = consumer.poll(1000);
 
-         if (StringUtils.isBlank(searchBy)) {
-            StreamSupport.stream(records.spliterator(), false)
-                    .limit(finalCount - messages.size())
-                    .map(this::createMessage)
-                    .forEach(messages::add);
-         } else {
-            StreamSupport.stream(records.spliterator(), false)
-                    .limit(finalCount - messages.size()).map(this::createMessage)
-                    .filter(messageVO -> containAny(messageVO.getMessage(), contains))
-                    .forEach(messages::add);
-         }
-      }
+            if (StringUtils.isBlank(searchBy)) {
+                StreamSupport.stream(records.spliterator(), false)
+                        .limit(finalCount - messages.size())
+                        .map(m -> createMessage(m, deserializer))
+                        .forEach(messages::add);
+            } else {
+                StreamSupport.stream(records.spliterator(), false)
+                        .limit(finalCount - messages.size()).map(m -> createMessage(m, deserializer))
+                        .filter(messageVO -> containAny(messageVO.getMessage(), contains))
+                        .forEach(messages::add);
+            }
+        }
 
-      return messages;
+        return messages;
 
       /*return kafkaMonitor.getBroker(partition.getLeader().getId())
          .map(broker -> {
@@ -129,7 +130,7 @@ public class MessageInspector
                StreamSupport.stream(messageSet.spliterator(), false)
                   .limit(finalCount - messages.size())
                   .map(MessageAndOffset::message)
-                  .map(this::createMessage)
+                  .map(m -> createMessage(m, deserializer))
                   .forEach(messages::add);
                currentOffset += messages.size() - oldSize;
             }
@@ -137,94 +138,79 @@ public class MessageInspector
             return messages;
          })
          .orElseGet(Collections::emptyList);*/
-   }
+    }
 
-   private boolean containAny(String message, List<String> contains) {
-      if (!CollectionUtils.isEmpty(contains)) {
-         if (contains.stream().anyMatch(charSequence -> message.contains(charSequence))) {
-            return true;
-         }
-      }
-      return false;
-   }
+    private boolean containAny(String message, List<String> contains) {
+        if (!CollectionUtils.isEmpty(contains)) {
+            if (contains.stream().anyMatch(charSequence -> message.contains(charSequence))) {
+                return true;
+            }
+        }
+        return false;
+    }
 
-   private MessageVO createMessage(ConsumerRecord<String, String> message)
-   {
-      MessageVO vo = new MessageVO();
-      if (Objects.nonNull(message.key()))
-      {
-         vo.setKey(message.key());
-      }
-      if (Objects.nonNull(message.value()))
-      {
-         vo.setMessage(message.value());
-      }
-      if (Objects.nonNull(message.offset()))
-      {
-         vo.setOffset(message.offset());
-      }
+    private MessageVO createMessage(ConsumerRecord<String, String> message, MessageDeserializer deserializer) {
+        MessageVO vo = new MessageVO();
+        if (Objects.nonNull(message.key())) {
+            vo.setKey(ByteUtils.readString(message.key()));
+        }
+        if (Objects.nonNull(message.value())) {
+            final String messageString = deserializer.deserializeMessage(message.payload());
+            vo.setMessage(messageString);
+        }
+        if (Objects.nonNull(message.offset())) {
+            vo.setOffset(message.offset());
+        }
+        if (Objects.nonNull(message.headers())) {
+            JsonObject headers = new JsonObject();
+            message.headers().forEach(h -> {
+                headers.addProperty(h.key(), new String(h.value()));
+            });
+            vo.setHeaders(headers.toString());
+        }
 
+        vo.setValid(message.isValid()); // comment me
+        vo.setCompressionCodec(message.compressionCodec().name()); // set empty string
+        vo.setChecksum(message.checksum());
+        vo.setComputedChecksum(message.computeChecksum()); //me too
 
-      if (Objects.nonNull(message.headers())) {
-         JsonObject headers = new JsonObject();
-         message.headers().forEach(h -> {
-            headers.addProperty(h.key(),new String(h.value()));
-         });
-         vo.setHeaders(headers.toString());
-      }
+        return vo;
+    }
 
-      //vo.setValid(message.isValid());
-      vo.setCompressionCodec("");
-      vo.setChecksum(message.checksum());
-      //vo.setComputedChecksum(message.computeChecksum());
-      //vo.setHeaders();
+    private String readString(ByteBuffer buffer) {
+        try {
+            return new String(readBytes(buffer), "UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            return "<unsupported encoding>";
+        }
+    }
 
-      return vo;
-   }
+    private byte[] readBytes(ByteBuffer buffer) {
+        return readBytes(buffer, 0, buffer.limit());
+    }
 
-   private String readString(ByteBuffer buffer)
-   {
-      try
-      {
-         return new String(readBytes(buffer), "UTF-8");
-      }
-      catch (UnsupportedEncodingException e)
-      {
-         return "<unsupported encoding>";
-      }
-   }
+    private byte[] readBytes(ByteBuffer buffer, int offset, int size) {
+        byte[] dest = new byte[size];
+        if (buffer.hasArray()) {
+            System.arraycopy(buffer.array(), buffer.arrayOffset() + offset, dest, 0, size);
+        } else {
+            buffer.mark();
+            buffer.get(dest);
+            buffer.reset();
+        }
+        return dest;
+    }
 
-   private byte[] readBytes(ByteBuffer buffer)
-   {
-      return readBytes(buffer, 0, buffer.limit());
-   }
-
-   private byte[] readBytes(ByteBuffer buffer, int offset, int size)
-   {
-      byte[] dest = new byte[size];
-      if (buffer.hasArray())
-      {
-         System.arraycopy(buffer.array(), buffer.arrayOffset() + offset, dest, 0, size);
-      }
-      else
-      {
-         buffer.mark();
-         buffer.get(dest);
-         buffer.reset();
-      }
-      return dest;
-   }
-
-   private Properties getConsumerConfiguration() {
-      try {
-         StringBuilder brokers = new StringBuilder();
-         kafkaMonitor.getBrokers().forEach(brokerVO -> brokers.append(brokerVO.getHost()+":"+brokerVO.getPort()+","));
-         this.consumerProperties.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, brokers.toString());
-         return consumerProperties;
-      } catch (Exception ex) {
-         LOG.error("Error while building consumer configuration.", ex);
-         return consumerProperties;
-      }
-   }
+    private Properties getConsumerConfiguration() {
+        try {
+            StringBuilder brokers = new StringBuilder();
+            kafkaMonitor.getBrokers().forEach(brokerVO -> brokers.append(brokerVO.getHost() + ":" + brokerVO.getPort() + ","));
+            this.consumerProperties.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, brokers.toString());
+            return consumerProperties;
+        } catch (Exception ex) {
+            LOG.error("Error while building consumer configuration.", ex);
+            return consumerProperties;
+        }
+    }
 
 }

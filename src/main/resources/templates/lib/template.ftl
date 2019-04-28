@@ -3,18 +3,19 @@
 <html>
 <head>
     <title>${title}</title>
-    <link type="text/css" rel="stylesheet" href="/css/baseless.min.css"/>
+    <link type="text/css" rel="stylesheet" href="/css/bootstrap.min.css"/>
     <link type="text/css" rel="stylesheet" href="/css/font-awesome.min.css"/>
     <link type="text/css" rel="stylesheet" href="/css/global.css"/>
 
     <script src="/js/jquery.min.js"></script>
+    <script src="/js/bootstrap.min.js"></script>
     <script src="/js/global.js"></script>
 
     <#nested>
 </head>
 <body>
    <#include "/includes/header.ftl">
-<div class="container">
+<div class="container l-container">
 </#macro>
 
 <#macro footer>

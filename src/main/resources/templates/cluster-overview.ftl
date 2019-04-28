@@ -7,13 +7,36 @@
     <div>
         <h2>Kafka Cluster Overview</h2>
 
-        <div id="zookeeper">
-            <b>Zookeeper Hosts:</b> <#list zookeeper.connectList as z>${z}<#if z_has_next>, </#if></#list>
+        <div id="cluster-overview">
+            <table class="table table-bordered">
+                <tbody>
+                <tr>
+                    <td>Zookeeper Host Configuration</td>
+                    <td><#list zookeeper.connectList as z>${z}<#if z_has_next>, </#if></#list></td>
+                </tr>
+                <tr>
+                    <td>Total Topics</td>
+                    <td>${clusterSummary.topicCount}</td>
+                </tr>
+                <tr>
+                    <td>Total Partitions</td>
+                    <td>${clusterSummary.partitionCount}</td>
+                </tr>
+                <tr>
+                    <td>Total Preferred Partition Leader</td>
+                    <td <#if clusterSummary.preferredReplicaPercent lt 1.0>class="warning"</#if>>${clusterSummary.preferredReplicaPercent?string.percent}</td>
+                </tr>
+                <tr>
+                    <td>Total Under Replicated Partitions</td>
+                    <td <#if clusterSummary.underReplicatedCount gt 0>class="warning"</#if>>${clusterSummary.underReplicatedCount}</td>
+                </tr>
+                </tbody>
+            </table>
         </div>
 
         <div id="brokers">
             <h3>${brokers?size} Brokers</h3>
-            <table class="bs-table default">
+            <table class="table table-bordered">
                 <thead>
                 <tr>
                     <th>ID</th>
@@ -21,14 +44,29 @@
                     <th>Port</th>
                     <th>JMX Port</th>
                     <th>Version</th>
-                    <th>Start Time</th>
+                    <th>
+                        Start Time
+                        <a title="Time the broker joined the cluster"
+                           data-toggle="tooltip" data-placement="top" href="#"
+                        ><i class="fa fa-question-circle"></i></a>
+                    </th>
                     <th>Controller?</th>
+                    <th>
+                        # Partitions (% of Total)
+                        <a title="# of partitions this broker is the leader for"
+                           data-toggle="tooltip" data-placement="top" href="#"
+                        ><i class="fa fa-question-circle"></i></a>
+                    </th>
                 </tr>
                 </thead>
                 <tbody>
                 <#if brokers?size == 0>
                     <tr>
-                        <td class="error" colspan="7">No brokers available!</td>
+                        <td class="danger text-danger" colspan="8"><i class="fa fa-warning"></i> No brokers available</td>
+                    </tr>
+                <#elseif missingBrokerIds?size gt 0>
+                    <tr>
+                        <td class="danger text-danger" colspan="8"><i class="fa fa-warning"></i> Missing brokers: <#list missingBrokerIds as b>${b}<#if b_has_next>, </#if></#list></td>
                     </tr>
                 </#if>
                 <#list brokers as b>
@@ -40,6 +78,7 @@
                     <td>${b.version}</td>
                     <td>${b.timestamp?string["yyyy-MM-dd HH:mm:ss.SSSZ"]}</td>
                     <td><@template.yn b.controller/></td>
+                    <td>${(clusterSummary.getBrokerLeaderPartitionCount(b.id))!0} (${(((clusterSummary.getBrokerLeaderPartitionCount(b.id))!0)/clusterSummary.partitionCount)?string.percent})</td>
                 </tr>
                 </#list>
                 </tbody>
@@ -48,7 +87,7 @@
 
         <div id="topics">
             <h3>${topics?size} Topics</h3>
-            <table class="bs-table default">
+            <table class="table table-bordered">
                 <thead align="left">
                 <tr>
                     <th>
@@ -91,8 +130,8 @@
                 <tr class="dataRow">
                     <td><a class="bs-btn info" href="/topic/${t.name}" title="Topic Info"><i class="fa fa-gears"></i></a> <a class="bs-btn success" href="/topic/${t.name}/messages" title="View Messages"><i class="fa fa-envelope"></i> ${t.name}</a></td>
                     <td>${t.partitions?size}</td>
-                    <td <#if t.preferredReplicaPercent lt 1.0>class="warn"</#if>>${t.preferredReplicaPercent?string.percent}</td>
-                    <td <#if t.underReplicatedPartitions?size gt 0>class="warn"</#if>>${t.underReplicatedPartitions?size}</td>
+                    <td <#if t.preferredReplicaPercent lt 1.0>class="warning"</#if>>${t.preferredReplicaPercent?string.percent}</td>
+                    <td <#if t.underReplicatedPartitions?size gt 0>class="warning"</#if>>${t.underReplicatedPartitions?size}</td>
                     <td><@template.yn t.config?size gt 0/></td>
                     <#--<td>${t.consumers![]?size}</td>-->
                 </tr>
