@@ -20,6 +20,7 @@ package com.homeadvisor.kafdrop.service;
 
 import com.google.gson.JsonObject;
 import com.homeadvisor.kafdrop.model.MessageVO;
+import com.homeadvisor.kafdrop.model.SearchStringComparatorVO;
 import com.homeadvisor.kafdrop.model.TopicPartitionVO;
 import com.homeadvisor.kafdrop.model.TopicVO;
 import org.apache.commons.lang.StringUtils;
@@ -32,7 +33,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.util.CollectionUtils;
 
 import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
@@ -67,11 +67,7 @@ public class MessageInspector
 
       long lastOffset = partition.getSize();
       final long finalCount = lastOffset >= offset + count ? count : lastOffset - offset;
-      List<String> tempContains = null;
-      if (StringUtils.isNotBlank(searchBy)) {
-         tempContains = Arrays.asList(searchBy.split("[|]"));
-      }
-      final List<String> contains = tempContains;
+      final SearchStringComparatorVO contains = new SearchStringComparatorVO(searchBy);
 
       //----------- here and remove return;
 
@@ -93,8 +89,9 @@ public class MessageInspector
                     .forEach(messages::add);
          } else {
             StreamSupport.stream(records.spliterator(), false)
-                    .limit(finalCount - messages.size()).map(this::createMessage)
-                    .filter(messageVO -> containAny(messageVO.getMessage(), contains))
+                    .map(this::createMessage)
+                    .filter(messageVO -> contains.validate(messageVO.getMessage()))
+                    .limit(finalCount - messages.size())
                     .forEach(messages::add);
          }
       }
@@ -137,15 +134,6 @@ public class MessageInspector
             return messages;
          })
          .orElseGet(Collections::emptyList);*/
-   }
-
-   private boolean containAny(String message, List<String> contains) {
-      if (!CollectionUtils.isEmpty(contains)) {
-         if (contains.stream().anyMatch(charSequence -> message.contains(charSequence))) {
-            return true;
-         }
-      }
-      return false;
    }
 
    private MessageVO createMessage(ConsumerRecord<String, String> message)
